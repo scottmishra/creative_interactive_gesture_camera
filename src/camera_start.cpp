@@ -132,6 +132,7 @@ void onNewDepthSample(DepthNode node, DepthNode::NewSampleReceivedData data)
     }
 
     pub.publish (cloud);
+    g_context.quit();
     /* Quit the main loop after 1 depth frames received
     if (g_dFrames%1== 0){
 	char buff[100];
