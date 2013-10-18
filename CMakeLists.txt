@@ -4,7 +4,7 @@ project(creative_interactive_gesture_camera)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS pcl_ros roscpp rospy std_msgs)
+find_package(catkin REQUIRED COMPONENTS pcl_ros cv_bridge roscpp rospy std_msgs image_transport)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -67,7 +67,8 @@ include_directories(
 )
 include_directories(/opt/softkinetic/DepthSenseSDK/include)
 link_directories(/opt/softkinetic/DepthSenseSDK/lib)
-add_executable(camera_start src/camera_start.cpp)
+
+add_executable(camera_start src/camera_start.cpp src/ImageConverter.cpp)
 target_link_libraries(camera_start DepthSense ${catkin_LIBRARIES})
 add_dependencies(camera_start beginner_tutorials_generate_message_cpp)
 ## Declare a cpp library

@@ -29,6 +29,7 @@
 
 //ros include files
 #include <ros/ros.h>
+#include <std_msgs/Int32.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <pcl_ros/point_cloud.h>
 #include <pcl_ros/io/pcd_io.h>
@@ -57,7 +58,13 @@ bool g_bDeviceFound = false;
 ProjectionHelper* g_pProjHelper = NULL;
 StereoCameraParameters g_scp;
 
-ros::Publisher pub;
+ros::Publisher pub_cloud;
+ros::Publisher pub_rgb;
+
+ros::Publisher pub_test;
+
+sensor_msgs::Image image;
+std_msgs::Int32 test_int;
 pcl::PointCloud<pcl::PointXYZ> cloud;
 int counter;
 
@@ -74,6 +81,28 @@ void onNewAudioSample(AudioNode node, AudioNode::NewSampleReceivedData data)
 void onNewColorSample(ColorNode node, ColorNode::NewSampleReceivedData data)
 {
     //printf("C#%u: %d\n",g_cFrames,data.colorMap.size());
+    //image.header.frame_id = "/base_link";
+    int count = -3;
+    int32_t w, h;
+    FrameFormat_toResolution(data.captureConfiguration.frameFormat,&w,&h);
+    image.width = w;
+    image.height = h;
+    image.encoding = "bgr8";
+    image.data.resize(w*h*3);
+    for(int i = 0;i < h;i++){
+      count = count +3;
+	    for(int j = 0;j < w; j+=2){
+         image.data[count] = data.colorMap[count];
+         image.data[count+1] = data.colorMap[count+1];
+         image.data[count+2] = data.colorMap[count+2];
+         count++;
+	    }
+    } 
+    
+    test_int.data = h;
+    pub_test.publish(test_int);
+    pub_rgb.publish(image);
+    
     g_cFrames++;
 }
 
@@ -82,7 +111,7 @@ void onNewColorSample(ColorNode node, ColorNode::NewSampleReceivedData data)
 void onNewDepthSample(DepthNode node, DepthNode::NewSampleReceivedData data)
 {
     //printf("Z#%u: %d %d %d\n",g_dFrames,data.vertices[500].x,data.vertices[500].y,data.vertices[500].z);
-    int count = 0;
+    int count = -1;
     cloud.header.frame_id = "/base_link";
     // Project some 3D points in the Color Frame
     if (!g_pProjHelper)
@@ -119,19 +148,19 @@ void onNewDepthSample(DepthNode node, DepthNode::NewSampleReceivedData data)
     cloud.points.resize(w*h); 
 
     for(int i = 0;i < h;i++){
-	for(int j = 0;j < w; j++){
-	 count++;
+	    for(int j = 0;j < w; j++){
+	       count++;
          cloud.points[count].x = data.verticesFloatingPoint[count].x;
-	 cloud.points[count].y = data.verticesFloatingPoint[count].y;
+	       cloud.points[count].y = data.verticesFloatingPoint[count].y;
          if(data.verticesFloatingPoint[count].z == 32001){
-		cloud.points[count].z = 0;
-	 }else{
-	 	cloud.points[count].z = data.verticesFloatingPoint[count].z;
+		      cloud.points[count].z = 0;
+      	 }else{
+	 	      cloud.points[count].z = data.verticesFloatingPoint[count].z;
          }
-	}
+	    }
     }
 
-    pub.publish (cloud);
+    pub_cloud.publish (cloud);
     g_context.quit();
     /* Quit the main loop after 1 depth frames received
     if (g_dFrames%1== 0){
@@ -349,8 +378,11 @@ int main(int argc, char* argv[])
 {
     ros::init (argc, argv, "pub_pcl");
     ros::NodeHandle nh;
-    pub = nh.advertise<PointCloud> ("points2", 1);
-  
+    
+    pub_cloud = nh.advertise<PointCloud> ("points2", 1);
+    pub_rgb = nh.advertise<sensor_msgs::Image> ("rgb_data", 1);
+    pub_test = nh.advertise<std_msgs::Int32> ("test",1);
+    
     int user_input = 1;
     g_context = Context::create("localhost");
 
