@@ -26,6 +26,8 @@
 #include <stdio.h>
 #include <vector>
 #include <exception>
+#include <iostream>
+#include <fstream>
 
 //ros include files
 #include <ros/ros.h>
@@ -67,6 +69,7 @@ sensor_msgs::Image image;
 std_msgs::Int32 test_int;
 pcl::PointCloud<pcl::PointXYZ> cloud;
 int counter;
+int counter2;
 
 /*----------------------------------------------------------------------------*/
 // New audio sample event handler
@@ -79,7 +82,7 @@ void onNewAudioSample(AudioNode node, AudioNode::NewSampleReceivedData data)
 /*----------------------------------------------------------------------------*/
 // New color sample event handler
 void onNewColorSample(ColorNode node, ColorNode::NewSampleReceivedData data)
-{
+{   
     //printf("C#%u: %d\n",g_cFrames,data.colorMap.size());
     //image.header.frame_id = "/base_link";
     int count = -3;
@@ -90,16 +93,15 @@ void onNewColorSample(ColorNode node, ColorNode::NewSampleReceivedData data)
     image.encoding = "bgr8";
     image.data.resize(w*h*3);
     for(int i = 0;i < h;i++){
-      count = count +3;
-	    for(int j = 0;j < w; j+=2){
-         image.data[count] = data.colorMap[count];
-         image.data[count+1] = data.colorMap[count+1];
-         image.data[count+2] = data.colorMap[count+2];
-         count++;
+	    for(int j = 0;j < w; j++){
+	      count+=3;
+        image.data[count] = data.colorMap[count];
+        image.data[count+1] = data.colorMap[count+1];
+        image.data[count+2] = data.colorMap[count+2];    
 	    }
-    } 
-    
-    test_int.data = h;
+    }
+       
+    test_int.data = count;
     pub_test.publish(test_int);
     pub_rgb.publish(image);
     
@@ -376,6 +378,7 @@ void onDeviceDisconnected(Context context, Context::DeviceRemovedData data)
 /*----------------------------------------------------------------------------*/
 int main(int argc, char* argv[])
 {
+    counter2 = 0;
     ros::init (argc, argv, "pub_pcl");
     ros::NodeHandle nh;
     
