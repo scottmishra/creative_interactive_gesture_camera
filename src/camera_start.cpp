@@ -33,6 +33,7 @@
 #include <ros/ros.h>
 #include <std_msgs/Int32.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <image_transport/image_transport.h>
 #include <pcl_ros/point_cloud.h>
 #include <pcl_ros/io/pcd_io.h>
 #include <pcl/point_types.h>
@@ -40,6 +41,8 @@
 #include <pcl/visualization/cloud_viewer.h>
 
 #include <DepthSense.hxx>
+
+#include "cameraSync.h"
 
 using namespace DepthSense;
 using namespace std;
@@ -61,15 +64,15 @@ ProjectionHelper* g_pProjHelper = NULL;
 StereoCameraParameters g_scp;
 
 ros::Publisher pub_cloud;
-ros::Publisher pub_rgb;
+image_transport::Publisher pub_rgb;
 
 ros::Publisher pub_test;
 
 sensor_msgs::Image image;
 std_msgs::Int32 test_int;
 pcl::PointCloud<pcl::PointXYZ> cloud;
-int counter;
-int counter2;
+
+cameraSync* syncObject;
 
 /*----------------------------------------------------------------------------*/
 // New audio sample event handler
@@ -83,8 +86,8 @@ void onNewAudioSample(AudioNode node, AudioNode::NewSampleReceivedData data)
 // New color sample event handler
 void onNewColorSample(ColorNode node, ColorNode::NewSampleReceivedData data)
 {   
-    //printf("C#%u: %d\n",g_cFrames,data.colorMap.size());
-    //image.header.frame_id = "/base_link";
+    image.header.frame_id = "/base_link";
+    image.header.stamp = ros::Time::now();
     int count = -3;
     int32_t w, h;
     FrameFormat_toResolution(data.captureConfiguration.frameFormat,&w,&h);
@@ -101,9 +104,11 @@ void onNewColorSample(ColorNode node, ColorNode::NewSampleReceivedData data)
 	    }
     }
        
-    test_int.data = count;
-    pub_test.publish(test_int);
+    //test_int.data = count;
+    //pub_test.publish(test_int);
     pub_rgb.publish(image);
+    
+    //syncObject->imageCallback(image&);
     
     g_cFrames++;
 }
@@ -115,6 +120,7 @@ void onNewDepthSample(DepthNode node, DepthNode::NewSampleReceivedData data)
     //printf("Z#%u: %d %d %d\n",g_dFrames,data.vertices[500].x,data.vertices[500].y,data.vertices[500].z);
     int count = -1;
     cloud.header.frame_id = "/base_link";
+    cloud.header.stamp = ros::Time::now().toSec();
     // Project some 3D points in the Color Frame
     if (!g_pProjHelper)
     {
@@ -164,15 +170,6 @@ void onNewDepthSample(DepthNode node, DepthNode::NewSampleReceivedData data)
 
     pub_cloud.publish (cloud);
     g_context.quit();
-    /* Quit the main loop after 1 depth frames received
-    if (g_dFrames%1== 0){
-	char buff[100];
-        sprintf(buff, "pcdTest%d.pcd", counter);
-        std::string buffAsStdStr = buff;
-	pcl::io::savePCDFileASCII(buffAsStdStr, cloud);
-	counter = counter + 1;
-        g_context.quit();
-    }*/
 }
 
 /*----------------------------------------------------------------------------*/
@@ -378,15 +375,17 @@ void onDeviceDisconnected(Context context, Context::DeviceRemovedData data)
 /*----------------------------------------------------------------------------*/
 int main(int argc, char* argv[])
 {
-    counter2 = 0;
     ros::init (argc, argv, "pub_pcl");
     ros::NodeHandle nh;
-    
+    image_transport::ImageTransport it(nh);
+
+
     pub_cloud = nh.advertise<PointCloud> ("points2", 1);
-    pub_rgb = nh.advertise<sensor_msgs::Image> ("rgb_data", 1);
+    pub_rgb = it.advertise ("rgb_data", 1);
     pub_test = nh.advertise<std_msgs::Int32> ("test",1);
     
-    int user_input = 1;
+    syncObject = new cameraSync();
+    
     g_context = Context::create("localhost");
 
     g_context.deviceAddedEvent().connect(&onDeviceConnected);

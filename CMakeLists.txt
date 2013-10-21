@@ -68,7 +68,7 @@ include_directories(
 include_directories(/opt/softkinetic/DepthSenseSDK/include)
 link_directories(/opt/softkinetic/DepthSenseSDK/lib)
 
-add_executable(camera_start src/camera_start.cpp src/ImageConverter.cpp)
+add_executable(camera_start src/camera_start.cpp src/cameraSync.cpp)
 target_link_libraries(camera_start DepthSense ${catkin_LIBRARIES})
 add_dependencies(camera_start beginner_tutorials_generate_message_cpp)
 ## Declare a cpp library
