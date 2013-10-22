@@ -33,18 +33,23 @@
 #include <ros/ros.h>
 #include <std_msgs/Int32.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/point_cloud_conversion.h>
 #include <image_transport/image_transport.h>
 #include <pcl_ros/point_cloud.h>
 #include <pcl_ros/io/pcd_io.h>
 #include <pcl/point_types.h>
 #include <pcl/range_image/range_image.h>
 #include <pcl/visualization/cloud_viewer.h>
+#include <message_filters/subscriber.h>
+#include <message_filters/time_synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
 
 #include <DepthSense.hxx>
 
 #include "cameraSync.h"
 
 using namespace DepthSense;
+using namespace message_filters;
 using namespace std;
 
 typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
@@ -64,15 +69,18 @@ ProjectionHelper* g_pProjHelper = NULL;
 StereoCameraParameters g_scp;
 
 ros::Publisher pub_cloud;
+//ros::Publisher pub_cloudRGB;
 image_transport::Publisher pub_rgb;
 
 ros::Publisher pub_test;
 
 sensor_msgs::Image image;
+sensor_msgs::Image cloudImage;
 std_msgs::Int32 test_int;
 pcl::PointCloud<pcl::PointXYZ> cloud;
+//pcl::PointCloud<pcl::PointXYZRGB> cloudRGB_;
 
-cameraSync* syncObject;
+int offset;
 
 /*----------------------------------------------------------------------------*/
 // New audio sample event handler
@@ -86,29 +94,35 @@ void onNewAudioSample(AudioNode node, AudioNode::NewSampleReceivedData data)
 // New color sample event handler
 void onNewColorSample(ColorNode node, ColorNode::NewSampleReceivedData data)
 {   
+    //Create a sensor_msg::Image for ROS based on the new camera image
     image.header.frame_id = "/base_link";
-    image.header.stamp = ros::Time::now();
-    int count = -3;
+    //image.header.stamp.sec = ros::Time::now().toSec();
+    //image.header.stamp.nsec = ros::Time::now().toSec()-offset;
+    image.header.stamp.nsec = g_cFrames++*1000;
+    int count = 0;
+    int count2 = 0;
     int32_t w, h;
     FrameFormat_toResolution(data.captureConfiguration.frameFormat,&w,&h);
-    image.width = w;
-    image.height = h;
+    image.width = w/2;
+    image.height = h/2;
     image.encoding = "bgr8";
     image.data.resize(w*h*3);
     for(int i = 0;i < h;i++){
 	    for(int j = 0;j < w; j++){
-	      count+=3;
-        image.data[count] = data.colorMap[count];
-        image.data[count+1] = data.colorMap[count+1];
-        image.data[count+2] = data.colorMap[count+2];    
+	      if(count2%6 == 0){	      
+          image.data[count] = data.colorMap[count2];
+          image.data[count+1] = data.colorMap[count2+1];
+          image.data[count+2] = data.colorMap[count2+2];    
+          count+=3;
+        }
+        count2+=3;
 	    }
     }
        
     //test_int.data = count;
     //pub_test.publish(test_int);
+    // Publish the rgb data
     pub_rgb.publish(image);
-    
-    //syncObject->imageCallback(image&);
     
     g_cFrames++;
 }
@@ -120,7 +134,8 @@ void onNewDepthSample(DepthNode node, DepthNode::NewSampleReceivedData data)
     //printf("Z#%u: %d %d %d\n",g_dFrames,data.vertices[500].x,data.vertices[500].y,data.vertices[500].z);
     int count = -1;
     cloud.header.frame_id = "/base_link";
-    cloud.header.stamp = ros::Time::now().toSec();
+    //cloud.header.stamp = ros::Time::now().toSec()-offset;
+    cloud.header.stamp = g_dFrames++;
     // Project some 3D points in the Color Frame
     if (!g_pProjHelper)
     {
@@ -370,22 +385,23 @@ void onDeviceDisconnected(Context context, Context::DeviceRemovedData data)
 {
     g_bDeviceFound = false;
     printf("Device disconnected\n");
-}
-
+} 
+           
 /*----------------------------------------------------------------------------*/
 int main(int argc, char* argv[])
 {
+    //initialize ros
     ros::init (argc, argv, "pub_pcl");
     ros::NodeHandle nh;
+    offset = ros::Time::now().toSec();
+    //initialize image transport object
     image_transport::ImageTransport it(nh);
-
-
+  
+    //initialize publishers
     pub_cloud = nh.advertise<PointCloud> ("points2", 1);
     pub_rgb = it.advertise ("rgb_data", 1);
     pub_test = nh.advertise<std_msgs::Int32> ("test",1);
-    
-    syncObject = new cameraSync();
-    
+       
     g_context = Context::create("localhost");
 
     g_context.deviceAddedEvent().connect(&onDeviceConnected);
@@ -409,11 +425,12 @@ int main(int argc, char* argv[])
         for (int n = 0; n < (int)na.size();n++)
             configureNode(na[n]);
     }
-
+    //loop while ros core is operational or Ctrl-C is used
     while(ros::ok()){
     	g_context.startNodes();
     	g_context.run();
     }
+    //Close out all nodes
     if (g_cnode.isSet()) g_context.unregisterNode(g_cnode);
     if (g_dnode.isSet()) g_context.unregisterNode(g_dnode);
     if (g_anode.isSet()) g_context.unregisterNode(g_anode);

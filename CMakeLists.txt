@@ -71,6 +71,10 @@ link_directories(/opt/softkinetic/DepthSenseSDK/lib)
 add_executable(camera_start src/camera_start.cpp src/cameraSync.cpp)
 target_link_libraries(camera_start DepthSense ${catkin_LIBRARIES})
 add_dependencies(camera_start beginner_tutorials_generate_message_cpp)
+
+add_executable(camera_sync src/camera_sync.cpp)
+target_link_libraries(camera_sync ${catkin_LIBRARIES})
+add_dependencies(camera_sync beginner_tutorials_generate_message_cpp)
 ## Declare a cpp library
 # add_library(creative_interactive_gesture_camera
 #   src/${PROJECT_NAME}/creative_interactive_gesture_camera.cpp
