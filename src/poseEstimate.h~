@@ -1,0 +1,90 @@
+//ros include files
+#include <ros/ros.h>
+#include <std_msgs/Int32.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/point_cloud_conversion.h>
+#include <pcl_ros/io/pcd_io.h>
+#include <pcl_ros/point_cloud.h>
+
+#include <Eigen/Core>
+
+#include <pcl/point_types.h>
+#include <pcl/common/time.h>
+#include <pcl/io/pcd_io.h>
+#include <pcl/ModelCoefficients.h>
+
+#include <pcl/features/normal_3d_omp.h>
+#include <pcl/features/fpfh_omp.h>
+#include <pcl/features/pfh.h>
+
+#include <pcl/filters/filter.h>
+#include <pcl/filters/voxel_grid.h>
+#include <pcl/filters/extract_indices.h>
+
+#include <pcl/registration/icp.h>
+#include <pcl/registration/sample_consensus_prerejective.h>
+#include <pcl/sample_consensus/method_types.h>
+#include <pcl/sample_consensus/model_types.h>
+#include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/segmentation/extract_clusters.h>
+
+#include <pcl/surface/gp3.h>
+
+#include <pcl/keypoints/sift_keypoint.h>
+#include <pcl/keypoints/impl/sift_keypoint.hpp>
+
+
+
+// Types
+typedef pcl::PointNormal PointNT; //representing normal coordinates and the surface curvature estimate
+typedef pcl::PointCloud<PointNT> PointCloudNT;
+//typedef pcl::FPFHSignature33 FeatureT;
+typedef pcl::PFHSignature125 FeatureT;
+//typedef pcl::FPFHEstimationOMP<pcl::PointXYZRGB,PointNT,FeatureT> FeatureEstimationT;
+typedef pcl::PointCloud<FeatureT> FeatureCloudT;
+
+class poseEstimate
+{
+  public:
+  //constructor used to initialize the node handle
+  poseEstimate(ros::NodeHandle& nh);
+  ~poseEstimate(void){};
+  //setup function will initialize all the boost shared pointers along with the 
+  // publishers and subscribers
+  void setup();
+  
+  private:
+  //callback function that is called with sub_cloud_in_ recieves a pointcloud msg
+  void pointCloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& cloud);
+  //compute cluster extractino from pointclouds
+  void computeClusterExtraction(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& cloud);
+  //compute SIFT keypoints
+  void computeSIFTKeypoints();
+  //compute trianglation
+  void computeTrianglation();
+  
+  //ros node handle object
+  ros::NodeHandle nh_;
+  ros::Publisher pub_cloud_comb_;
+  ros::Publisher pub_cloud_cluster_;
+  ros::Publisher pub_cloud_sift_;
+  ros::Subscriber sub_cloud_in_;
+  
+  // Point clouds XYZRGB objects
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in_;
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in_filtered_;
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_cluster_;
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in_new_;
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in_new_filtered_;
+  //will publish this point cloud XYZRGB object out to ros
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr object_aligned_;
+  //pointcloud normal objects, hold the estimated normals of the points in the cloud
+  pcl::PointCloud<pcl::Normal>::Ptr cloud_normals_;
+  pcl::PointCloud<pcl::Normal>::Ptr cloud_normals_new_;
+  //Feature objects used to hold computed features for scene
+  FeatureCloudT::Ptr cloud_features_; 
+  FeatureCloudT::Ptr cloud_features_new_; 
+  pcl::PointCloud<pcl::PointWithScale>::Ptr siftResult_;
+  //used to determine number of frames 
+  int counter;
+};

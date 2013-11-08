@@ -1,0 +1,5 @@
+<launch>  
+  <node pkg="creative_interactive_gesture_camera" type="point_cloud_avg" name="point_cloud_avg" respawn="false"  required="true">
+    <remap from="/points2" to="/depth_registered/points" />
+  </node>
+</launch>

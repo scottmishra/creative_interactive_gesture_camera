@@ -1,0 +1,53 @@
+<launch>
+  <node pkg="tf" type="static_transform_publisher" name="base_link_broadcaster" args="0 0 0 1.57 3.1416 1.57 map link1 100" />
+  
+  <node pkg="creative_interactive_gesture_camera" type="main" name="depth_cam" respawn="false"  required="true">
+    <remap from="/points2" to="/depth_registered/points" /> <!-- output -->
+    <remap from="/rgb_data" to="/rgb/image_raw"/> <!-- output -->
+    <remap from="/camera_info" to="/rgb/camera_info" /> <!-- output -->
+  </node>
+  
+  <!--<node pkg="creative_interactive_gesture_camera" type="main2" name="pose_estimate" respawn="false" >
+    <remap from="/points2" to="/depth_registered/points" /> --> <!-- input -->
+ <!-- </node> -->
+  
+  <node pkg="rviz" type="rviz" name="rviz" args="-d /home/scott/catkin_ws/src/creative_interactive_gesture_camera/src/rvizconfig.rviz" respawn="false"  required="true">
+  </node>
+  
+  <node pkg="image_view" type="image_view" name="image_view" args="image:=/rgb/image_raw" respawn="false"  required="true">
+  </node> 
+  
+  <node pkg="creative_interactive_gesture_camera" type="point_cloud_avg" name="point_cloud_avg" respawn="false"  required="true">
+    <remap from="/points2" to="/depth_registered/points" /> <!-- input -->
+    <remap from="/transform_points2" to="/depth_registered/averaged/points" /> <!-- output -->
+  </node>
+  
+  <node pkg="pcl_ros" type="convert_pointcloud_to_image" name="convert_pointcloud_to_image"
+  respawn="false"  required="true" args="input:=/depth_registered/points output:=/depth_registered/points_image_try" >
+  </node>
+  
+  <node pkg="creative_interactive_gesture_camera" type="camera_sync" name="camera_sync" respawn="false"  required="true">
+    <remap from="/rgb_image" to="/rgb/image_raw" /> <!-- input -->
+    <remap from="/camera_info" to="/rgb/camera_info" /> <!-- input -->
+    <remap from="/point_cloud" to="/depth_registered/points" /> <!-- input -->
+    <remap from="/points2_image" to="/depth_registered/points_image" /> <!-- output -->
+  </node>
+  
+  <node pkg="nodelet" type="nodelet" name="image_proc_nodelet" 
+        args="standalone image_proc/crop_decimate camera:=rgb camera_out:=rgb_downsampled">
+  </node>
+  
+  <node pkg="dynamic_reconfigure" type="dynparam" name="reconfig_x" 
+        args="set /image_proc_nodelet decimation_x 4">
+  </node>
+  
+  <node pkg="dynamic_reconfigure" type="dynparam" name="reconfig_y" 
+        args="set /image_proc_nodelet decimation_y 3">
+  </node>
+  
+  <node pkg="image_view" type="image_view" name="image_view2" args="image:=/rgb_downsampled/image_raw" respawn="false"  required="true">
+  </node> 
+  
+  <node pkg="image_view" type="image_view" name="image_view3" args="image:=/depth_registered/points_image_try" respawn="false"  required="true">
+  </node> 
+</launch>

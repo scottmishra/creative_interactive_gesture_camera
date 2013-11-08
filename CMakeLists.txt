@@ -68,13 +68,29 @@ include_directories(
 include_directories(/opt/softkinetic/DepthSenseSDK/include)
 link_directories(/opt/softkinetic/DepthSenseSDK/lib)
 
-add_executable(camera_start src/camera_start.cpp src/cameraSync.cpp)
+add_executable(camera_start src/camera_start.cpp)
 target_link_libraries(camera_start DepthSense ${catkin_LIBRARIES})
 add_dependencies(camera_start beginner_tutorials_generate_message_cpp)
 
-add_executable(camera_sync src/camera_sync.cpp)
+add_executable(camera_sync src/camera_sync.cpp )
 target_link_libraries(camera_sync ${catkin_LIBRARIES})
 add_dependencies(camera_sync beginner_tutorials_generate_message_cpp)
+
+add_executable(main src/main.cpp src/Sensor.cpp)
+target_link_libraries(main DepthSense ${catkin_LIBRARIES})
+add_dependencies(main beginner_tutorials_generate_message_cpp)
+
+add_executable(main2 src/main2.cpp src/poseEstimate.cpp)
+target_link_libraries(main2 DepthSense ${catkin_LIBRARIES})
+add_dependencies(main2 beginner_tutorials_generate_message_cpp)
+
+add_executable(find_keypoints  src/find_keypoints.cpp)
+target_link_libraries(find_keypoints ${catkin_LIBRARIES})
+add_dependencies(find_keypoints beginner_tutorials_generate_message_cpp)
+
+add_executable(point_cloud_avg  src/point_cloud_avg.cpp)
+target_link_libraries(point_cloud_avg ${catkin_LIBRARIES})
+add_dependencies(point_cloud_avg beginner_tutorials_generate_message_cpp)
 ## Declare a cpp library
 # add_library(creative_interactive_gesture_camera
 #   src/${PROJECT_NAME}/creative_interactive_gesture_camera.cpp

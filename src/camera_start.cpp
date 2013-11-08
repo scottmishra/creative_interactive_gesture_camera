@@ -35,22 +35,27 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/point_cloud_conversion.h>
 #include <image_transport/image_transport.h>
+
 #include <pcl_ros/point_cloud.h>
 #include <pcl_ros/io/pcd_io.h>
 #include <pcl/point_types.h>
 #include <pcl/range_image/range_image.h>
 #include <pcl/visualization/cloud_viewer.h>
+
 #include <message_filters/subscriber.h>
 #include <message_filters/time_synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
 
-#include <DepthSense.hxx>
+#include <cv_bridge/cv_bridge.h>
+#include <sensor_msgs/image_encodings.h>
 
-#include "cameraSync.h"
+#include <DepthSense.hxx>
 
 using namespace DepthSense;
 using namespace message_filters;
 using namespace std;
+
+namespace enc = sensor_msgs::image_encodings;
 
 typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
 
@@ -69,16 +74,13 @@ ProjectionHelper* g_pProjHelper = NULL;
 StereoCameraParameters g_scp;
 
 ros::Publisher pub_cloud;
-//ros::Publisher pub_cloudRGB;
 image_transport::Publisher pub_rgb;
 
 ros::Publisher pub_test;
 
 sensor_msgs::Image image;
-sensor_msgs::Image cloudImage;
 std_msgs::Int32 test_int;
-pcl::PointCloud<pcl::PointXYZ> cloud;
-//pcl::PointCloud<pcl::PointXYZRGB> cloudRGB_;
+pcl::PointCloud<pcl::PointXYZRGB> cloud;
 
 int offset;
 
@@ -96,26 +98,23 @@ void onNewColorSample(ColorNode node, ColorNode::NewSampleReceivedData data)
 {   
     //Create a sensor_msg::Image for ROS based on the new camera image
     image.header.frame_id = "/base_link";
-    //image.header.stamp.sec = ros::Time::now().toSec();
-    //image.header.stamp.nsec = ros::Time::now().toSec()-offset;
     image.header.stamp.nsec = g_cFrames++*1000;
     int count = 0;
-    int count2 = 0;
+    
     int32_t w, h;
     FrameFormat_toResolution(data.captureConfiguration.frameFormat,&w,&h);
-    image.width = w/2;
-    image.height = h/2;
+    image.width = w;///2;
+    image.height = h;///2;
     image.encoding = "bgr8";
     image.data.resize(w*h*3);
-    for(int i = 0;i < h;i++){
-	    for(int j = 0;j < w; j++){
-	      if(count2%6 == 0){	      
-          image.data[count] = data.colorMap[count2];
-          image.data[count+1] = data.colorMap[count2+1];
-          image.data[count+2] = data.colorMap[count2+2];    
-          count+=3;
-        }
-        count2+=3;
+    int count2 = w*h*3-1;
+    
+    for(int i = 0;i < w;i++){
+	    for(int j = 0;j < h; j++){	      
+        image.data[count2]   = data.colorMap[count2];
+        image.data[count2+1] = data.colorMap[count2+1];
+        image.data[count2+2] = data.colorMap[count2+2];
+        count2-=3;
 	    }
     }
        
@@ -134,7 +133,6 @@ void onNewDepthSample(DepthNode node, DepthNode::NewSampleReceivedData data)
     //printf("Z#%u: %d %d %d\n",g_dFrames,data.vertices[500].x,data.vertices[500].y,data.vertices[500].z);
     int count = -1;
     cloud.header.frame_id = "/base_link";
-    //cloud.header.stamp = ros::Time::now().toSec()-offset;
     cloud.header.stamp = g_dFrames++;
     // Project some 3D points in the Color Frame
     if (!g_pProjHelper)
@@ -153,15 +151,8 @@ void onNewDepthSample(DepthNode node, DepthNode::NewSampleReceivedData data)
     int cx = w/2;
     int cy = h/2;  
 
-    /*Vertex p3DPoints[4];
-
-    p3DPoints[0] = data.vertices[(cy-h/4)*w+cx-w/4];
-    p3DPoints[1] = data.vertices[(cy-h/4)*w+cx+w/4];
-    p3DPoints[2] = data.vertices[(cy+h/4)*w+cx+w/4];
-    p3DPoints[3] = data.vertices[(cy+h/4)*w+cx-w/4];
-    
-    Point2D p2DPoints[4];
-    g_pProjHelper->get2DCoordinates ( p3DPoints, p2DPoints, 4, CAMERA_PLANE_COLOR);*/
+    Vertex p3DPoints[1];
+    Point2D p2DPoints[1];
     
     g_dFrames++;
    
@@ -169,9 +160,13 @@ void onNewDepthSample(DepthNode node, DepthNode::NewSampleReceivedData data)
     cloud.width = w;
     cloud.is_dense = true;
     cloud.points.resize(w*h); 
-
-    for(int i = 0;i < h;i++){
-	    for(int j = 0;j < w; j++){
+    
+    uchar b,g,r;
+    uint32_t rgb;
+    cv::Vec3b bgr;
+    
+    for(int i = 1;i < h ;i++){
+	    for(int j = 1;j < w ; j++){
 	       count++;
          cloud.points[count].x = data.verticesFloatingPoint[count].x;
 	       cloud.points[count].y = data.verticesFloatingPoint[count].y;
@@ -180,6 +175,10 @@ void onNewDepthSample(DepthNode node, DepthNode::NewSampleReceivedData data)
       	 }else{
 	 	      cloud.points[count].z = data.verticesFloatingPoint[count].z;
          }
+         p3DPoints[0] = data.vertices[count];
+         g_pProjHelper->get2DCoordinates ( p3DPoints, p2DPoints, 1, CAMERA_PLANE_COLOR);
+         int x_pos = (int)p2DPoints[0].x;
+         int y_pos = (int)p2DPoints[0].y;
 	    }
     }
 
@@ -236,6 +235,7 @@ void configureDepthNode()
     config.mode = DepthNode::CAMERA_MODE_CLOSE_MODE;
     config.saturation = true;
 
+    g_dnode.setEnableVertices(true);
     g_dnode.setEnableVerticesFloatingPoint(true);
     g_dnode.setEnableDepthMapFloatingPoint(true);
 
@@ -283,7 +283,7 @@ void configureColorNode()
     g_cnode.newSampleReceivedEvent().connect(&onNewColorSample);
 
     ColorNode::Configuration config = g_cnode.getConfiguration();
-    config.frameFormat = FRAME_FORMAT_VGA;
+    config.frameFormat = FRAME_FORMAT_WXGA_H;
     config.compression = COMPRESSION_TYPE_MJPEG;
     config.powerLineFrequency = POWER_LINE_FREQUENCY_50HZ;
     config.framerate = 25;
@@ -401,7 +401,7 @@ int main(int argc, char* argv[])
     pub_cloud = nh.advertise<PointCloud> ("points2", 1);
     pub_rgb = it.advertise ("rgb_data", 1);
     pub_test = nh.advertise<std_msgs::Int32> ("test",1);
-       
+    
     g_context = Context::create("localhost");
 
     g_context.deviceAddedEvent().connect(&onDeviceConnected);
