@@ -1,0 +1,271 @@
+ void pointCloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& cloud); 
+ /*pcl::VoxelGrid<pcl::PointXYZRGB> grid;
+  const float leaf = 0.05f;
+  grid.setLeafSize (leaf, leaf, leaf);
+  pcl::NormalEstimationOMP<pcl::PointXYZRGB, pcl::Normal> normalEstimator;
+  pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB> ());
+  normalEstimator.setSearchMethod(tree); //sets the search method of the normal estimator to KdTree
+  //use neighbors in a sphere of radius set in meters
+  normalEstimator.setRadiusSearch(0.06); //1cm radius sphere
+  //Estimate features
+  //pcl::FPFHEstimation<pcl::PointXYZRGB, pcl::Normal, pcl::FPFHSignature33> fest;
+  pcl::PFHEstimation<pcl::PointXYZRGB, pcl::Normal, pcl::PFHSignature125> fest;
+  pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree_fest (new pcl::search::KdTree<pcl::PointXYZRGB> ());
+  fest.setRadiusSearch (0.1); //radius must be larger than radius used to estimate normals
+  fest.setSearchMethod(tree_fest);
+  
+  
+  if(counter == 0)
+  {
+    //read in cloud data
+    *cloud_in_ = *cloud;
+    grid.setInputCloud (cloud_in_);
+    grid.filter (*cloud_in_filtered_);
+    
+    //estimate the normals of the point cloud
+    normalEstimator.setInputCloud(cloud_in_filtered_);
+    
+    //computer normal features
+    normalEstimator.compute(*cloud_normals_);
+    ROS_INFO("Size of normals_: %d", cloud_normals_->points.size());
+    fest.setInputCloud (cloud_in_filtered_);
+    fest.setInputNormals (cloud_normals_);
+    fest.compute(*cloud_features_);
+    counter++;
+    
+    //poseEstimate::computeClusterExtraction(cloud_in_);
+    poseEstimate::computeSIFTKeypoints();
+    poseEstimate::computeTrianglation();
+    //std::cin.get();
+  }else
+  {
+    //read in cloud data
+    *cloud_in_new_ = *cloud;
+    grid.setInputCloud (cloud_in_new_);
+    grid.filter (*cloud_in_new_filtered_);  
+    
+    //estimate the normals of the point cloud
+    normalEstimator.setInputCloud(cloud_in_new_filtered_);
+     
+    //computer normal features
+    normalEstimator.compute(*cloud_normals_new_);
+    ROS_INFO("Size of normals_new_: %d", cloud_normals_new_->points.size());
+    
+    //feature estimator
+    fest.setInputCloud (cloud_in_new_filtered_);
+    fest.setInputNormals (cloud_normals_new_);
+    fest.compute(*cloud_features_new_);
+    
+    //Perform alignment
+    pcl::SampleConsensusPrerejective<pcl::PointXYZRGB,pcl::PointXYZRGB,pcl::PFHSignature125> align;
+    align.setInputSource (cloud_in_filtered_);
+    align.setSourceFeatures (cloud_features_);
+    align.setInputTarget (cloud_in_new_filtered_);
+    align.setTargetFeatures (cloud_features_new_);
+    align.setNumberOfSamples (3); // Number of points to sample for generating/prerejecting a pose
+    align.setCorrespondenceRandomness (2); // Number of nearest features to use
+    align.setSimilarityThreshold (0.6f); // Polygonal edge length similarity threshold
+    align.setMaxCorrespondenceDistance (1.5f * leaf); // Set inlier threshold
+    align.setInlierFraction (0.25f); // Set required inlier fraction
+    align.align (*object_aligned_);
+    
+    counter = 0;
+    
+    if (align.hasConverged ())
+    {
+    // Print results
+      Eigen::Matrix4f transformation = align.getFinalTransformation ();
+      ROS_INFO ("    | %6.3f %6.3f %6.3f | \n", transformation (0,0), transformation (0,1), transformation (0,2));
+      ROS_INFO ("R = | %6.3f %6.3f %6.3f | \n", transformation (1,0), transformation (1,1), transformation (1,2));
+      ROS_INFO ("    | %6.3f %6.3f %6.3f | \n", transformation (2,0), transformation (2,1), transformation (2,2));
+      ROS_INFO ("\n");
+      ROS_INFO ("t = < %0.3f, %0.3f, %0.3f >\n", transformation (0,3), transformation (1,3), transformation (2,3));
+      ROS_INFO ("\n");
+      ROS_INFO ("Inliers: %i/%i\n", align.getInliers ().size (), cloud_in_->size ());
+    
+      pcl::PointCloud<pcl::PointXYZRGB>::Ptr Final (new pcl::PointCloud<pcl::PointXYZRGB>);
+      pcl::transformPointCloud(*cloud_in_, *Final, align.getFinalTransformation ());
+      *cloud_in_new_ += *Final;
+      pcl::IterativeClosestPoint<pcl::PointXYZRGB, pcl::PointXYZRGB> icp;
+      icp.setInputSource(Final);
+      icp.setInputTarget(cloud_in_new_filtered_);
+    
+      icp.align(*Final);
+      pcl::transformPointCloud (*cloud_in_, *Final, icp.getFinalTransformation ());
+      //*cloud_in_new_ += *Final;
+      pub_cloud_comb_.publish(cloud_in_new_);
+    }
+  }*/
+  
+  
+  /*void poseEstimate::findCorrespondences (const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& cloud &src,
+                            const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& cloud &tgt, 
+                            pcl::registration::Correspondences &all_correspondences)
+{
+  //CorrespondenceEstimationNormalShooting<PointT, PointT, PointT> est;
+  //CorrespondenceEstimation<PointT, PointT> est;
+  pcl::registration::CorrespondenceEstimationBackProjection<pcl::PointXYZRGB, pcl::PointXYZRGB, pcl::PointXYZRGB> est;
+  est.setInputSource (src);
+  est.setInputTarget (tgt);
+  
+  est.setSourceNormals (src);
+  est.setTargetNormals (tgt);
+  est.setKSearch (10);
+  est.determineCorrespondences (all_correspondences);
+  //est.determineReciprocalCorrespondences (all_correspondences);
+}
+
+void poseStimate::rejectBadCorrespondences (const pcl::registration::CorrespondencesPtr &all_correspondences,
+                          const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& &src,
+                          const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& &tgt,
+                          pcl::registration::Correspondences &remaining_correspondences)
+{
+  pcl::registration::CorrespondenceRejectorMedianDistance rej;
+  rej.setMedianFactor (8.79241104);
+  rej.setInputCorrespondences (all_correspondences);
+
+  rej.getCorrespondences (remaining_correspondences);
+  return;
+  
+  CorrespondencesPtr remaining_correspondences_temp (new Correspondences);
+  rej.getCorrespondences (*remaining_correspondences_temp);
+  PCL_DEBUG ("[rejectBadCorrespondences] Number of correspondences remaining after rejection: %d\n", remaining_correspondences_temp->size ());
+
+  // Reject if the angle between the normals is really off
+  pcl::registration::CorrespondenceRejectorSurfaceNormal rej_normals;
+  rej_normals.setThreshold (acos (deg2rad (45.0)));
+  rej_normals.initializeDataContainer<pcl::PointXYZRGB, pcl::PointXYZRGB> ();
+  rej_normals.setInputCloud<pcl::PointXYZRGB> (src);
+  rej_normals.setInputNormals<pcl::PointXYZRGB, pcl::PointXYZRGB> (src);
+  rej_normals.setInputTarget<pcl::PointXYZRGB> (tgt);
+  rej_normals.setTargetNormals<pcl::PointXYZRGB, pcl::PointXYZRGB> (tgt);
+  rej_normals.setInputCorrespondences (remaining_correspondences_temp);
+  rej_normals.getCorrespondences (remaining_correspondences);
+}*/
+
+/*void poseEstimate::pointCloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& cloud)
+ /*Want to add new frame to graph object everytime the correspondence is within a certain threshold
+   *This was we can move to graph optimization and loop closure
+   */
+   
+  //filter down pointcloud
+  pcl::VoxelGrid<pcl::PointXYZRGB> vg; //VoxelGrid Filter to downsample cloud
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZRGB>); //filtered cloud container
+  vg.setInputCloud (cloud);
+  vg.setLeafSize (0.01f, 0.01f, 0.01f);
+  vg.filter (*cloud_filtered); //fill in cloud_filtered with downsampled cloud  
+  
+  //Get the last vertice added to the graph
+  int size = graph.getVertexIdx();
+  if(size > 0) //check that we have already added one frame
+  {
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_last (new pcl::PointCloud<pcl::PointXYZRGB>); //last cloud add to graph
+    
+    //Detect Sift points
+    ROS_INFO ("Detecting SIFT Features");
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr siftResults (new pcl::PointCloud<pcl::PointXYZRGB>);
+    poseEstimate::computeSIFTKeypoints(cloud_filtered, *siftResults);
+    ROS_INFO ("Done Finding SIFT Features");
+    //Compute Normals
+    ROS_INFO ("Detecting Normals");
+    pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>);
+    poseEstimate::computeNormals(cloud_filtered, *normals);
+    ROS_INFO ("Done Detecting Normals");
+    //Compute FPFH
+    ROS_INFO ("Detecting FPFH Features");
+    pcl::PointCloud<pcl::FPFHSignature33>::Ptr fpfhs (new pcl::PointCloud<pcl::FPFHSignature33>);
+    poseEstimate::estimateFPFH(cloud_filtered, normals, siftResults, *fpfhs);
+    ROS_INFO ("Done Detecting FPFH Features");
+    
+    for(int idx = size-1; idx < size; idx++)
+    {
+      //add correspondences between each of the frames
+      pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_last_filtered (new pcl::PointCloud<pcl::PointXYZRGB>); //filtered cloud container
+      vg.setInputCloud (cloud_last);
+      vg.setLeafSize (0.01f, 0.01f, 0.01f);
+      vg.filter (*cloud_last_filtered); //fill in cloud_filtered with downsampled cloud 
+      //compute last sift
+      ROS_INFO ("Detecting SIFT Features");
+      pcl::PointCloud<pcl::PointXYZRGB>::Ptr siftResults_last (new pcl::PointCloud<pcl::PointXYZRGB>);
+      poseEstimate::computeSIFTKeypoints(cloud_last_filtered, *siftResults_last);
+      ROS_INFO ("Done Finding SIFT Features");
+      //compute last normals
+      ROS_INFO ("Detecting Normals");
+      pcl::PointCloud<pcl::Normal>::Ptr normals_last (new pcl::PointCloud<pcl::Normal>);
+      poseEstimate::computeNormals(cloud_last_filtered, *normals_last);
+      ROS_INFO ("Done Detecting Normals");
+      //Compute FPFH
+      ROS_INFO ("Detecting FPFH Features");
+      pcl::PointCloud<pcl::FPFHSignature33>::Ptr fpfhs_last (new pcl::PointCloud<pcl::FPFHSignature33>);
+      poseEstimate::estimateFPFH(cloud_last_filtered, normals_last, siftResults_last, *fpfhs_last);
+      ROS_INFO ("Done Detecting FPFH Features");
+      //Compute Correspondence between two frames
+      ROS_INFO("Start Correspondence Check");
+      pcl::CorrespondencesPtr cor (new pcl::Correspondences);
+      poseEstimate::findCorrespondence(fpfhs, fpfhs_last, *cor);
+      ROS_INFO("End Correspondence Check");
+      //reject Bad Correspondence Values
+      ROS_INFO("Start Correspondence Rejection");
+      pcl::CorrespondencesPtr goodCorresp (new pcl::Correspondences);
+      poseEstimate::rejectBadCorrespondence(cor, siftResults, siftResults_last,*goodCorresp);
+      ROS_INFO("End Correspondence Rejection");
+      // Obtain the best transformation between the two sets of keypoints given the remaining correspondences
+      pcl::registration::TransformationEstimationSVD<pcl::PointXYZRGB, pcl::PointXYZRGB> trans_est;
+      Eigen::Matrix4f transform;
+      ROS_INFO("Start Tranformation Estimation");
+      trans_est.estimateRigidTransformation (*siftResults, *siftResults_last, *goodCorresp, transform);
+      pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_trans (new pcl::PointCloud<pcl::PointXYZRGB>);
+      pcl::transformPointCloud(*cloud_filtered,*cloud_filtered,transform);
+      ROS_INFO("Transformed Cloud");
+      //display transform
+      ROS_INFO ("    | %6.3f %6.3f %6.3f | \n", transform (0,0), transform (0,1), transform (0,2));
+      ROS_INFO ("R = | %6.3f %6.3f %6.3f | \n", transform (1,0), transform (1,1), transform (1,2));
+      ROS_INFO ("    | %6.3f %6.3f %6.3f | \n", transform (2,0), transform (2,1), transform (2,2));
+      ROS_INFO ("t = < %0.3f, %0.3f, %0.3f >\n", transform (0,3), transform (1,3), transform (2,3));
+      //start ICP on the now transformed filtered point cloud
+      ROS_INFO("Start ICP");
+      poseEstimate::computeICP(cloud_filtered, cloud_last_filtered, transform);
+      ROS_INFO("End ICP");  
+      ROS_INFO ("    | %6.3f %6.3f %6.3f | \n", transform (0,0), transform (0,1), transform (0,2));
+      ROS_INFO ("R = | %6.3f %6.3f %6.3f | \n", transform (1,0), transform (1,1), transform (1,2));
+      ROS_INFO ("    | %6.3f %6.3f %6.3f | \n", transform (2,0), transform (2,1), transform (2,2));
+      ROS_INFO ("t = < %0.3f, %0.3f, %0.3f >\n", transform (0,3), transform (1,3), transform (2,3)); 
+      pcl::transformPointCloud(*cloud_trans,*cloud_trans,transform);   
+    
+      *cloud_in_ += *cloud_trans;
+      pub_cloud_comb_.publish(cloud_in_);
+      ROS_INFO("Capture Image:"); 
+      std::cin.get();
+    }
+  }
+  else
+  {
+    //Adding first cloud
+    *globalMap_ = *cloud;
+    globalMap_->header.frame_id = cloud->header.frame_id;
+    //set up initial poses for first frame
+    Eigen::Matrix4f pose = Eigen::Matrix4f::Identity ();
+    Eigen::Matrix4f keyframeRelativePose = Eigen::Matrix4f::Identity();
+    //store first frame in currentFrame object
+    currentFrame = new FrameRGBD();
+    //give frame the point cloud
+    *(currentFrame->pointCloudPtr) = *cloud_in_;
+    downsampler->downsamplePointCloud(currentFrame->pointCloudPtr, currentFrame->downsampledPointCloudPtr);
+    currentFrame->timeStamp = cloud->header.stamp;
+    
+    graph.addVertex(pose);
+    ROS_INFO("Capture Image:"); 
+    std::cin.get();
+  }
+  if(size%3 == 0)
+  {
+    ROS_INFO("Starting to compute Concatenated Clouds");
+    ROS_INFO("Finished computing Clouds");
+    pub_cloud_comb_.publish(cloud_in_);
+    
+  }
+  //Testing
+  std_msgs::Float32 msg;
+  msg.data = size;
+  pub_test_.publish(msg);
+}*/

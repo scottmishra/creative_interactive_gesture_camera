@@ -6,7 +6,7 @@
 
 //ros include files
 #include <ros/ros.h>
-#include <std_msgs/Int32.h>
+#include <std_msgs/Int32.h> //used for debugging purposes
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/point_cloud_conversion.h>
 #include <image_transport/image_transport.h>
@@ -22,6 +22,7 @@
 #include <message_filters/sync_policies/approximate_time.h>
 
 #include <cv_bridge/cv_bridge.h>
+#include <opencv2/imgproc/imgproc.hpp>
 #include <sensor_msgs/image_encodings.h>
 
 #include <DepthSense.hxx>
@@ -57,17 +58,25 @@ private:
 private:
   ros::NodeHandle nh_;
   image_transport::ImageTransport it_;
+  
   image_transport::Publisher pub_image;
+  image_transport::Publisher pub_image_mono;
   image_transport::Publisher pub_cloud_image;
   
   ros::Publisher pub_cloud;
+  ros::Publisher pub_cloud_xyz;
   ros::Publisher pub_camera_info;
+  ros::Publisher pub_camera_mono_info;
+  ros::Publisher pub_test;
   
   sensor_msgs::Image cloud_image;
   sensor_msgs::Image image;
+  sensor_msgs::Image image_mono;
+  
   sensor_msgs::CameraInfo camera_info;
   
   pcl::PointCloud<pcl::PointXYZRGB> cloud;
+  pcl::PointCloud<pcl::PointXYZ> cloud_xyz;
         
   Context device_context;
   DepthNode d_node;
@@ -79,6 +88,7 @@ private:
   StereoCameraParameters stereo_param;
         
   cv::Mat color_img;
+  cv::Mat mono_img;
   cv::Mat depth_img;
   
   uint32_t g_aFrames;

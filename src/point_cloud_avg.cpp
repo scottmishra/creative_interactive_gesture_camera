@@ -13,6 +13,9 @@
 #include <pcl/filters/passthrough.h>
 #include <pcl/filters/statistical_outlier_removal.h>
 
+#include <creative_interactive_gesture_camera/Mapping2D.h> //Custom message for passing corresponding 2D points for each 3D point
+#include <creative_interactive_gesture_camera/Point2D.h>//Custom message for passing corresponding 2D points for each 3D point
+
 typedef pcl::PointCloud<pcl::PointXYZRGB> PointCloud;
 ros::Publisher pub;
 int counter;
@@ -57,6 +60,7 @@ void callback(const PointCloud::ConstPtr& cloud){
     sor.setMeanK (25);
     sor.setStddevMulThresh (0.75);
     sor.filter (*cloud_new);
+    cloud_new->header = cloud->header;
     //filter down incoming cloud
     /*pcl::PointCloud<pcl::PointXYZRGB>::Ptr filtered_cloud_target (new pcl::PointCloud<pcl::PointXYZRGB>);
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr filtered_cloud_new (new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -82,10 +86,10 @@ void callback(const PointCloud::ConstPtr& cloud){
     counter++;
     // Saving transformed input cloud.
     if(counter == 2){
-      saveCounter++;
-      std::ostringstream saveName;
-      saveName << "transformed_cloud" << saveCounter << ".pcd";
-      std::string copyOfStr = saveName.str();
+      //saveCounter++;
+      //std::ostringstream saveName;
+      //saveName << "transformed_cloud" << saveCounter << ".pcd";
+      //std::string copyOfStr = saveName.str();
       //pcl::io::savePCDFileASCII (copyOfStr, *cloud_target);
       counter = 1;
       pub.publish(cloud_new);

@@ -4,12 +4,50 @@
   <node pkg="rgbdslam" type="rgbdslam" name="rgbdslam" cwd="node" required="true"> 
     <!-- Input data settings-->
     <param name="config/topic_image_mono"              value="/rgb_downsampled/image_raw"/> <!--could also be color -->
-    <param name="config/topic_image_depth"             value="/depth_registered/points_image"/>
-    <param name="config/topic_points"                  value=""/> <!--if empty, poincloud will be reconstructed from image and depth -->
+    <param name="config/topic_image_depth"             value="/depth/points/image_raw"/>
+    <param name="config/topic_points"                  value="/depth_registered/pointsRGB"/> <!--if empty, poincloud will be reconstructed from image and depth -->
+    <param name="config/camera_info_topic"             value="/rgb/camera_info"/>
 
     <param name="config/feature_detector_type"         value="SURF"/><!-- If SIFTGPU is enabled in CMakeLists.txt, use SURF here -->
     <param name="config/feature_extractor_type"        value="SURF"/><!-- If SIFTGPU is enabled in CMakeLists.txt, use SURF here -->
     <param name="config/nn_distance_ratio"             value="0.95"/> <!-- Feature correspondence is valid if distance to nearest neighbour is smaller than this parameter times the distance to the 2nd neighbour -->
+    <param name="config/matcher_type"                  value="FLANN"/> <!-- FLANN (not avail for ORB features), SIFTGPU (only for SIFTGPU detector)  or BRUTEFORCE-->
     <param name="config/max_keypoints"                 value="600"/><!-- Extract no more than this many keypoints (not honored by SIFTGPU)-->
+    
+    <param name="config/store_pointclouds"             value="false"/>
+    
+    <param name="config/depth_camera_cx"               value="320.0" /><!-- 640-->
+    <param name="config/depth_camera_cy"               value="180.0" /><!-- 360-->
+    <param name="config/depth_camera_fx"               value="963.3939819335938" /><!-- -->
+    <param name="config/depth_camera_fy"               value="986.9500122070312" /><!-- -->
+    
+    <param name="config/min_translation_meter"         value="0.1"/><!-- frames with motion less than this, will be omitted -->
+  	<param name="config/min_rotation_degree"           value="5"/><!-- frames with motion less than this, will be omitted -->
+    <param name="config/predecessor_candidates"        value="5"/><!-- search through this many immediate predecessor nodes for corrspondences -->
+    <param name="config/neighbor_candidates"           value="5"/><!-- search through this many graph neighbour nodes for corrspondences -->
+    <param name="config/min_sampled_candidates"        value="5"/><!-- search through this many uniformly sampled nodes for corrspondences -->
+    <param name="config/max_connections"               value="10"/><!-- stop after this many succesfully found spation relations -->
+    <param name="config/min_matches"                   value="50"/><!-- Prune unreliable transformations from too few feature matches -->
+    <param name="config/sufficient_matches"            value="400"/><!-- Instead of matching all new descriptors against all of a previous node in one step, sufficient_matches+100 of the new descriptors are iteratively compared to all of the previous node until sufficient_matches are found. Setting this parameter low (e.g. 2x min_matches) speeds up comparisons of frames with many matches, but with a potential loss of accuracy, as the transformation is estimated from less features. Set it to max_keypoints for maximum accuracy -->
+    <param name="config/ransac_iterations"             value="5000"/><!-- these are fast, so high values are ok -->
+    <param name="config/max_dist_for_inliers"          value="3"/> <!--matches considered inliers by ransac (in mahalanobis distance, i.e. std deviations)-->
+    <param name="config/optimizer_iterations"          value="2"/><!-- maximum of iterations in online operation (i.e., does not affect the final optimization in batch mode) -->
+    <param name="config/optimizer_skip_step"           value="1"/><!-- optimize every n-th frame. Set high for offline operation -->
+    <param name="config/use_icp"                       value="false"/> <!-- Ignored if ICP is not compiled in (see top of CMakeLists.txt) -->
+    <param name="config/gicp_max_cloud_size"           value="12500"/> <!-- Ignored if ICP is not compiled in (see top of CMakeLists.txt) -->
+    <param name="config/backend_solver"                value="cholmod"/> <!-- Which solver to use in g2o for matrix inversion: "csparse" , "cholmod" or "pcg"  -->
+    <param name="config/optimize_landmarks"            value="false"/> <!-- Include feature poses as vertices in graph optimization-->
+    
+    <param name="config/concurrent_node_construction"  value="true"/> <!-- detect+extract features for new frame, while current frame is inserted into graph -->
+    <param name="config/concurrent_optimization"       value="true"/> <!-- Do graph optimization in a seperate thread -->
+    <param name="config/voxelfilter_size"              value="-1.0"/> <!-- in meter voxefilter displayed and stored pointclouds, incompatible with use_glwidget=true. Set negative to disable-->
+  	<param name="config/preserve_raster_on_save"       value="false"/>
+    <param name="config/min_time_reported"             value="0.01"/><!-- for easy runtime analysis -->
+  	<param name="config/start_paused"                  value="true"/>
+    <param name="config/batch_processing"              value="false"/>    <!--store results and close after bagfile has been processed-->
+    <param name="config/keep_all_nodes"                value="false"/> <!-- add nodes with constant motion if no transformation can be found -->
+    <param name="config/keep_good_nodes"               value="true"/> <!-- add nodes with constant motion if no transformation can be found but minimal number of keypoints were found -->
+    <param name="cam_resol_x"                          value="320.0"/>
+    <param name="cam_resol_y"                          value="240.0"/>
   </node>
 </launch>

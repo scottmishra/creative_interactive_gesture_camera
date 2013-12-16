@@ -26,6 +26,9 @@
 #include <opencv2/nonfree/features2d.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
+#include <creative_interactive_gesture_camera/Mapping2D.h> //Custom message for passing corresponding 2D points for each 3D point
+#include <creative_interactive_gesture_camera/Point2D.h>//Custom message for passing corresponding 2D points for each 3D point
+
 using namespace message_filters;
 using namespace std;
 
@@ -60,6 +63,7 @@ public:
                         << e.what());
     }   
     image_->header.frame_id = image->header.frame_id;
+    image_->header.stamp = image->header.stamp;
     image_pub_.publish (image_); //publish our cloud image
   } 
   
@@ -74,7 +78,10 @@ private:
 
 PointCloudToImage* pc2i;
 
-void syncTime(const sensor_msgs::ImageConstPtr& image, const sensor_msgs::PointCloud2ConstPtr& input_cloud, const sensor_msgs::CameraInfoConstPtr& cam_info)
+void syncTime(const sensor_msgs::ImageConstPtr& image, 
+              const sensor_msgs::PointCloud2ConstPtr& input_cloud, 
+              const sensor_msgs::CameraInfoConstPtr& cam_info.
+              const creative_interactive_gesture_camera::Mapping2DConstPtr& map)
 {
   ROS_INFO("INSIDE syncData2 callback");
   
@@ -97,11 +104,12 @@ int main(int argc, char* argv[])
   message_filters::Subscriber<sensor_msgs::Image> image_sub(nh, "rgb_image", 1);
   message_filters::Subscriber<sensor_msgs::PointCloud2> pc_sub(nh, "point_cloud", 1);
   message_filters::Subscriber<sensor_msgs::CameraInfo> ci_sub(nh, "camera_info",1);
+  message_filters::Subscriber<creative_interactive_gesture_camera::Mapping2D> map_sub(nh, "mapping_2d",1);
   
-  typedef sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::PointCloud2, sensor_msgs::CameraInfo> MySyncPolicy;
+  typedef sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::PointCloud2, sensor_msgs::CameraInfo, creative_interactive_gesture_camera::Mapping2D> MySyncPolicy;
   
-  message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(100), image_sub, pc_sub, ci_sub);
-  sync.registerCallback(boost::bind(&syncTime, _1, _2, _3));
+  message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(100), image_sub, pc_sub, ci_sub, map_sub);
+  sync.registerCallback(boost::bind(&syncTime, _1, _2, _3, _4));
   
   //loop while ros core is operational or Ctrl-C is used
   while(ros::ok()){

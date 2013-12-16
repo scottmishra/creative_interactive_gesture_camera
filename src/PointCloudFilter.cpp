@@ -1,4 +1,4 @@
-#include "PointCloudFilter.h"
+#include <PointCloudFilter.h>
 
 PointCloudFilter::PointCloudFilter(ros::NodeHandle& nh) 
                 : cloud_target(new pcl::PointCloud<pcl::PointXYZRGB>() ), 

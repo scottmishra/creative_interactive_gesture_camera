@@ -1,6 +1,8 @@
 #include "PointCloudFilter.h"
 
-PointCloudFilter::PointCloudFilter(ros::NodeHandle& nh) : cloud_target(new pcl::PointCloud<pcl::PointXYZRGB>() ), cloud_new(new pcl::PointCloud<pcl::PointXYZRGB>() )
+PointCloudFilter::PointCloudFilter(ros::NodeHandle& nh) 
+                : cloud_target(new pcl::PointCloud<pcl::PointXYZRGB>() ), 
+                  cloud_new(new pcl::PointCloud<pcl::PointXYZRGB>() )
 {
   nh_ = nh;
   counter = 0;

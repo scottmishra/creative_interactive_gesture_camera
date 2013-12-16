@@ -23,6 +23,9 @@
 
 #include <pcl/registration/icp.h>
 #include <pcl/registration/sample_consensus_prerejective.h>
+#include <pcl/registration/correspondence_estimation.h>
+#include <pcl/registration/correspondence_rejection_sample_consensus.h>
+#include <pcl/registration/lum.h>
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
@@ -76,15 +79,19 @@ class poseEstimate
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_cluster_;
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in_new_;
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in_new_filtered_;
+  
   //will publish this point cloud XYZRGB object out to ros
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr object_aligned_;
+  
   //pointcloud normal objects, hold the estimated normals of the points in the cloud
   pcl::PointCloud<pcl::Normal>::Ptr cloud_normals_;
   pcl::PointCloud<pcl::Normal>::Ptr cloud_normals_new_;
+  
   //Feature objects used to hold computed features for scene
   FeatureCloudT::Ptr cloud_features_; 
   FeatureCloudT::Ptr cloud_features_new_; 
   pcl::PointCloud<pcl::PointWithScale>::Ptr siftResult_;
+  
   //used to determine number of frames 
   int counter;
 };
