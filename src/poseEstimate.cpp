@@ -189,14 +189,14 @@ void poseEstimate::pointCloudCallback3(const sensor_msgs::ImageConstPtr& image,
                     
     std::cout << "Testing P1: " << std::endl << cv::Mat(P1) << std::endl;
     
-    std::cout << "Testing H2: " << std::endl << cv::Mat(H2) << std::endl;
+    std::cout << "Testing H2: " << std::endl << cv::Mat(H2.inv()) << std::endl;
     
     cv::Mat drawImg;
     cv::drawMatches(loopDetector.keyframesPointer()->back()->intensityImage, loopDetector.keypointsListPointer()->back(), currentFrame->intensityImage, currentKeypoints,
                     matches, drawImg, CV_RGB(0, 255, 0), CV_RGB(0, 0, 255),matchesMask);
-    cv::putText(drawImg,"Press enter to stop grabbing frames",cv::Point(20,450),cv::FONT_HERSHEY_SIMPLEX,1,cv::Scalar(255,0,0),2);
     cv::imshow( "correspondences", drawImg );
     cv::waitKey(100);
+    
     //Estimate the 3D rigid transformation between frame 1 and 2
     Eigen::Matrix4f H = Eigen::Matrix4f::Identity();
     ROS_INFO("Size matching points1: %d, points2: %d", points1.size(), points2.size());
@@ -561,6 +561,42 @@ void poseEstimate::getCurrentKeyPoints(const cv::Mat& image, std::vector<cv::Key
   cv::ORB orb(256);
   orb(image,cv::Mat(),keypoints,descriptors);
   
+}
+
+void poseEstimate::Mat2Quat(cv::Mat Mat, cv::Mat& Quat)
+{
+  //Determine Quaternions assuming Roation on the Matrix coming in, Mat
+  float trace = Mat.at<double>(0,0) +Mat.at<double>(1,1) + Mat.at<double>(2,2);
+  if( trace > 0 ) 
+  {
+    float s = 0.5f / sqrtf(trace+ 1.0f);
+    Quat.at<double>(0) = 0.25f / s;
+    Quat.at<double>(1)= ( Mat.at<double>(2,1) - Mat.at<double>(1,2) ) * s;
+    Quat.at<double>(2) = ( Mat.at<double>(0,2) - Mat.at<double>(2,0) ) * s;
+    Quat.at<double>(3) = ( Mat.at<double>(1,0) - Mat.at<double>(0,1) ) * s;
+  } else {
+    if ( Mat.at<double>(0,0) > Mat.at<double>(1,1) && Mat.at<double>(0,0) > Mat.at<double>(2,2) ) 
+    {
+      float s = 2.0f * sqrtf( 1.0f + Mat.at<double>(0,0) - Mat.at<double>(1,1) - Mat.at<double>(2,2));
+      Quat.at<double>(0) = (Mat.at<double>(2,1) - Mat.at<double>(1,2) ) / s;
+      Quat.at<double>(1) = 0.25f * s;
+      Quat.at<double>(2) = (Mat.at<double>(0,1) + Mat.at<double>(1,0) ) / s;
+      Quat.at<double>(3) = (Mat.at<double>(0,2) + Mat.at<double>(2,0) ) / s;
+    } else if (Mat.at<double>(1,1) > Mat.at<double>(2,2)) {
+      float s = 2.0f * sqrtf( 1.0f + Mat.at<double>(1,1) - Mat.at<double>(0,0) - Mat.at<double>(2,2));
+      Quat.at<double>(0) = (Mat.at<double>(0,2) - Mat.at<double>(2,0) ) / s;
+      Quat.at<double>(1) = (Mat.at<double>(0,1) + Mat.at<double>(1,0) ) / s;
+      Quat.at<double>(2) = 0.25f * s;
+      Quat.at<double>(3) = (Mat.at<double>(1,2) + Mat.at<double>(2,1) ) / s;
+    } else {
+      float s = 2.0f * sqrtf( 1.0f + Mat.at<double>(2,2) - Mat.at<double>(0,0) - Mat.at<double>(1,1) );
+      Quat.at<double>(0) = (Mat.at<double>(1,0) - Mat.at<double>(0,1) ) / s;
+      Quat.at<double>(1) = (Mat.at<double>(0,2) + Mat.at<double>(2,0) ) / s;
+      Quat.at<double>(2) = (Mat.at<double>(1,2) + Mat.at<double>(2,1) ) / s;
+      Quat.at<double>(3) = 0.25f * s;
+    }
+  }
+
 }
 
 void getCurrentFrameRGBD(FrameRGBD& frameRGBD)

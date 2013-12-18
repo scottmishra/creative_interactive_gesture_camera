@@ -152,7 +152,9 @@ class poseEstimate
                            cv::Mat& descriptors,
                            std::vector<float>& descriptors_aux);
                   
-  void getCurrentFrameRGBD(FrameRGBD& frameRGBD);     
+  void getCurrentFrameRGBD(FrameRGBD& frameRGBD); 
+  
+  void Mat2Quat(cv::Mat Mat, cv::Mat& Quat);    
   
                                  
   //Determine relation between src and tgt point clouds
