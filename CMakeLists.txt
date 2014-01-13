@@ -150,7 +150,7 @@ add_executable(main src/main.cpp src/Sensor.cpp)
 target_link_libraries(main DepthSense  ${catkin_LIBRARIES})
 add_dependencies(main beginner_tutorials_generate_message_cpp)
 
-add_executable(main2 src/main2.cpp 
+add_executable(SLAM src/SLAM.cpp 
                      src/poseEstimate.cpp 
                      src/GraphOptimizer_G2O.cpp 
                      src/PointCloudDownsampler.cpp
@@ -160,20 +160,33 @@ add_executable(main2 src/main2.cpp
                      src/VisualFeatureMatcher_Generic.cpp
                      src/Visual3DRigidTransformationEstimator_RANSAC.cpp
                      src/ICPPoseRefiner_PCL.cpp)#
-target_link_libraries(main2 DepthSense ${MY_LIB} ${catkin_LIBRARIES})
-add_dependencies(main2 beginner_tutorials_generate_message_cpp)
+target_link_libraries(SLAM DepthSense ${MY_LIB} ${catkin_LIBRARIES})
+add_dependencies(SLAM beginner_tutorials_generate_message_cpp)
 
-add_executable(find_keypoints  src/find_keypoints.cpp)
-target_link_libraries(find_keypoints ${catkin_LIBRARIES})
-add_dependencies(find_keypoints beginner_tutorials_generate_message_cpp)
+#add_executable(pairwiseAlignment src/pairwiseAlignment.cpp
+#                                 src/GraphOptimizer_G2O.cpp 
+#                                 src/PointCloudDownsampler.cpp
+#                                 src/FrameRGBD
+#                                 src/KeyframeLoopDetector.cpp
+#                                 src/Miscellaneous.cpp
+#                                 src/VisualFeatureMatcher_Generic.cpp
+#                                 src/Visual3DRigidTransformationEstimator_RANSAC.cpp
+#                                 src/ICPPoseRefiner_PCL.cpp)
+#target_link_libraries(pairwiseAlignment DepthSense ${MY_LIB} ${catkin_LIBRARIES})
+#add_dependencies(pairwiseAlignment beginner_tutorials_generate_message_cpp)
+                                 
 
-add_executable(point_cloud_avg  src/point_cloud_avg.cpp)
-target_link_libraries(point_cloud_avg ${catkin_LIBRARIES})
-add_dependencies(point_cloud_avg beginner_tutorials_generate_message_cpp)
+#add_executable(find_keypoints  src/find_keypoints.cpp)
+#target_link_libraries(find_keypoints ${catkin_LIBRARIES})
+#add_dependencies(find_keypoints beginner_tutorials_generate_message_cpp)
 
-add_executable(compareDepthImage src/compareDepthImage.cpp)
-target_link_libraries(compareDepthImage ${catkin_LIBRARIES})
-add_dependencies(compareDepthImage beginner_tutorials_generate_message_cpp)
+#add_executable(point_cloud_avg  src/point_cloud_avg.cpp)
+#target_link_libraries(point_cloud_avg ${catkin_LIBRARIES})
+#add_dependencies(point_cloud_avg beginner_tutorials_generate_message_cpp)
+
+#add_executable(compareDepthImage src/compareDepthImage.cpp)
+#target_link_libraries(compareDepthImage ${catkin_LIBRARIES})
+#add_dependencies(compareDepthImage beginner_tutorials_generate_message_cpp)
 ## Declare a cpp library
 # add_library(creative_interactive_gesture_camera
 #   src/${PROJECT_NAME}/creative_interactive_gesture_camera.cpp
