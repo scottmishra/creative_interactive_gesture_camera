@@ -99,8 +99,13 @@ class poseEstimate
   //testing different callback functions
   void pairwiseCallback(const sensor_msgs::ImageConstPtr& image, 
                         const sensor_msgs::PointCloud2ConstPtr& cloudMsg);
-  
-  //pulling in pointcloud, full image, and mapping informaiton
+                        
+  //pulling in pointcloud, full image, and mapping informaiton. 
+  //This is the main callback function used in code. Performs all the function calls necessary for 
+  //SLAM algorithm
+  //Follows standard pipeline for rgbd slam. 
+  //Capture image and PointCloud -> extract keypoints and descriptors -> Compare to Previous Image -> Perform RANSAC Transformation ->
+  //Refine Transformation using ICP -> Loop Detection -> Store keyframes in a graph -> optimize graph for least error over all images/clouds
   void pointCloudCallback2(const sensor_msgs::ImageConstPtr& image, 
                            const sensor_msgs::PointCloud2ConstPtr& cloudMsg//,
                            //const creative_interactive_gesture_camera::Mapping2D::ConstPtr& mapping
@@ -134,27 +139,30 @@ class poseEstimate
                      const pcl::PointCloud<pcl::Normal>::Ptr &normals_src,
                      const pcl::PointCloud<pcl::PointXYZRGB>::Ptr &keypoints_src,
                      pcl::PointCloud<pcl::FPFHSignature33> &fpfhs_src);
-                    
+  //finds the matching points between two point clouds and stores the information in all_correspondences variable                  
   void findCorrespondence(const pcl::PointCloud<pcl::FPFHSignature33>::Ptr &fpfhs_src,
                           const pcl::PointCloud<pcl::FPFHSignature33>::Ptr &fpfhs_tgt,
                           pcl::Correspondences &all_correspondences);
-                          
+  //using PCL, takes in all matching points between two point clouds ands removes any points that dont meet
+  //the desired criteria                        
   void rejectBadCorrespondence(const pcl::CorrespondencesPtr &all_correspondences,
                                              const pcl::PointCloud<pcl::PointXYZRGB>::Ptr &keypoints_src,
                                              const pcl::PointCloud<pcl::PointXYZRGB>::Ptr &keypoints_tgt,
                                              pcl::Correspondences &remaining_correspondences);
-                                             
+  // Computes transform between two point clouds using ICP algorithm (src cloud is rotated to tgt cloud)
+  // This is not a very robust algorithm, and the two clouds should be close before attempting ICP                                           
   void computeICP(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& cloud_src,
                   const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& cloud_tgt,
                   Eigen::Matrix4f &transform);
-                  
+  // Takes and image and determins the keypoints and descriptors of keypoints using OpenCV libraries                  
   void getCurrentKeyPoints(const cv::Mat& image, 
                            std::vector<cv::KeyPoint>& keypoints,
                            cv::Mat& descriptors,
                            std::vector<float>& descriptors_aux);
-                  
+                   
   void getCurrentFrameRGBD(FrameRGBD& frameRGBD); 
   
+  //converts a rotation amtrix to quaternions 
   void Mat2Quat(cv::Mat Mat, cv::Mat& Quat);    
   
                                  
