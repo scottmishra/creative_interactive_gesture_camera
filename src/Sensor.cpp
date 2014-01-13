@@ -35,8 +35,8 @@ void Sensor::setup()
    pub_cloud_xyz = nh_.advertise<pcl::PointCloud<pcl::PointXYZ> > ("points_xyz", 1);
 
    pub_camera_info = nh_.advertise<sensor_msgs::CameraInfo>("camera_info",1);
-   pub_camera_mono_info = nh_.advertise<sensor_msgs::CameraInfo>("camera_mono_info",1);
-   
+   pub_depth_info = nh_.advertise<sensor_msgs::CameraInfo>("depth_info",1);
+      
    pub_2d_3d_mapping = nh_.advertise<creative_interactive_gesture_camera::Mapping2D>("mapping_2d",1);
    
    pub_test = nh_.advertise<std_msgs::Float32>("mono_size",1);
@@ -259,6 +259,32 @@ void Sensor::onNewDepthSample(DepthNode node, DepthNode::NewSampleReceivedData d
   camera_info.R[7] = stereo_param.extrinsics.r32;
   camera_info.R[8] = stereo_param.extrinsics.r33;
   
+  depth_info.header.frame_id = "/map";
+  depth_info.header.stamp.nsec = g_dFrames*1000;
+  
+  depth_info.height = stereo_param.depthIntrinsics.height;
+  depth_info.width  = stereo_param.depthIntrinsics.width;
+  depth_info.distortion_model = "plumb_bob";
+  depth_info.D.resize(5); 
+  depth_info.D[0] = stereo_param.depthIntrinsics.k1; //k1 first radial distortion coeff
+  depth_info.D[1] = stereo_param.depthIntrinsics.k2; //k2 second radial dist. coeff
+  depth_info.D[2] = stereo_param.depthIntrinsics.p1; //t1 first tangential distortion coefficient
+  depth_info.D[3] = stereo_param.depthIntrinsics.p2; //t2 second tangential distortion coefficient
+  depth_info.D[4] = stereo_param.depthIntrinsics.k3; //k3 third radial dist. coeff
+  depth_info.K[0] = stereo_param.depthIntrinsics.fx; //the focal length along the x axis, expressed in pixel units
+  depth_info.K[2] = stereo_param.depthIntrinsics.cx; //the central point along the x axis, expressed in pixel units
+  depth_info.K[4] = stereo_param.depthIntrinsics.fy; //the focal length along the y axis, expressed in pixel units
+  depth_info.K[5] = stereo_param.depthIntrinsics.cy; //the central point along the y axis, expressed in pixel units
+  depth_info.R[0] = stereo_param.extrinsics.r11; //Seting up the recification matrix
+  depth_info.R[1] = stereo_param.extrinsics.r12; 
+  depth_info.R[2] = stereo_param.extrinsics.r13;
+  depth_info.R[3] = stereo_param.extrinsics.r21;
+  depth_info.R[4] = stereo_param.extrinsics.r22;
+  depth_info.R[5] = stereo_param.extrinsics.r23;
+  depth_info.R[6] = stereo_param.extrinsics.r31;
+  depth_info.R[7] = stereo_param.extrinsics.r32;
+  depth_info.R[8] = stereo_param.extrinsics.r33;
+  
   std_msgs::Float32 msg;
   int num = rand()%(w*h);
   msg.data = data.verticesFloatingPoint[num].z;
@@ -272,7 +298,8 @@ void Sensor::onNewDepthSample(DepthNode node, DepthNode::NewSampleReceivedData d
   pub_cloud.publish (cloud);
   pub_cloud_xyz.publish (cloud_xyz);
   pub_camera_info.publish (camera_info);
-  pub_camera_mono_info.publish (camera_info);
+  pub_depth_info.publish(depth_info);
+  
   pub_cloud_image.publish (cv_ptr->toImageMsg());
   pub_2d_3d_mapping.publish(mapping);
 }

@@ -3,12 +3,12 @@
   
   <node pkg="creative_interactive_gesture_camera" type="main" name="depth_cam" respawn="false"  required="true">
     <remap from="/points2" to="/depth_registered/pointsRGB" /> <!-- output -->
-    <remap from="/points_xyz" to="/depth_registered/points" /> <!-- output -->
-    <remap from="/rgb_data" to="/rgb/image_raw"/> <!-- output -->
-    <remap from="/camera_info" to="/rgb/camera_info" /> <!-- output -->
-    <remap from="/mono_data" to="/mono/image_raw" /> <!-- output -->
-    <remap from="/camera_mono_info" to="/mono/camera_info" /> <!-- output -->
-    <remap from="/cloud_image" to="/depth/points/image_raw" /> <!-- coutput -->
+    <remap from="/points_xyz" to="/camera/depth/image_raw" /> <!-- output -->
+    <remap from="/rgb_data" to="/camera/rgb/image_raw"/> <!-- output -->
+    <remap from="/camera_info" to="/camera/rgb/camera_info" /> <!-- output -->
+    <remap from="/mono_data" to="/camera/mono/image_raw" /> <!-- output -->
+    <remap from="/depth_info" to="/camera/depth/camera_info" /> <!-- output -->
+    <remap from="/cloud_image" to="/camera/depth/points/image_raw" /> <!-- coutput -->
   </node>
   
   <!--<node pkg="creative_interactive_gesture_camera" type="main2" name="pose_estimate" respawn="false" >

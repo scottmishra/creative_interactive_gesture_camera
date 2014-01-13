@@ -71,8 +71,10 @@ private:
   
   ros::Publisher pub_cloud; //publishes point cloud in XYZRGB format
   ros::Publisher pub_cloud_xyz; //publishes point cloud in XYZ format
-  ros::Publisher pub_camera_info; //publishes depth camera information
-  ros::Publisher pub_camera_mono_info; 
+  
+  ros::Publisher pub_camera_info; //publishes color camera information
+  ros::Publisher pub_depth_info; //publishes depth camera information
+  
   ros::Publisher pub_test; //used for debugging
   ros::Publisher pub_2d_3d_mapping; //publishes 2d pixel location for each 3d pointcloud pixel
   
@@ -80,7 +82,8 @@ private:
   sensor_msgs::Image image; 
   sensor_msgs::Image image_mono;
   
-  sensor_msgs::CameraInfo camera_info;  //Camera info container
+  sensor_msgs::CameraInfo camera_info;  //Color camera info container
+  sensor_msgs::CameraInfo depth_info;   //Depth camera info container
   
   pcl::PointCloud<pcl::PointXYZRGB> cloud; //PointCloud containers
   pcl::PointCloud<pcl::PointXYZ> cloud_xyz;
