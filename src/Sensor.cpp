@@ -10,6 +10,8 @@ Sensor::Sensor(ros::NodeHandle& nh) : it_(nh_), device_found(false), proj_helper
   g_aFrames = 0;
   g_cFrames = 0;
   g_dFrames = 0;
+  transform = Eigen::Matrix4f::Identity();
+  //transform(2,2) = -1.0;
 }
 
 Sensor::~Sensor()
@@ -161,28 +163,29 @@ void Sensor::onNewDepthSample(DepthNode node, DepthNode::NewSampleReceivedData d
   mapping.size = w*h;
   mapping.points.resize(w*h);
   mapping.header = cloud_image.header;
-   
+  int dataInd = 0;
   uint8_t b,g,r;
   uint32_t rgb;
   float max_depth = -2; //in meters
   //ROS_INFO("%d %d %d",color_img.at<uint8_t>(400,400));
   
-  for(int i = 1;i < h ;i++){
-	  for(int j = 1;j < w ; j++){
+  for(int i = 0;i < h ;i++){
+	  for(int j = 0;j < w ; j++){
 	     count++;
-       cloud.points[count].x = data.verticesFloatingPoint[count].x;
-       cloud_xyz.points[count].x = data.verticesFloatingPoint[count].x;
-	     cloud.points[count].y = data.verticesFloatingPoint[count].y;
-	     cloud_xyz.points[count].y = data.verticesFloatingPoint[count].y;
+	     dataInd = count;//w*h-
+       cloud.points[count].x = data.verticesFloatingPoint[dataInd].x;
+       cloud_xyz.points[count].x = data.verticesFloatingPoint[dataInd].x;
+	     cloud.points[count].y = data.verticesFloatingPoint[dataInd].y;
+	     cloud_xyz.points[count].y = data.verticesFloatingPoint[dataInd].y;
 	     
-       if(data.verticesFloatingPoint[count].z == -2){
+       if(data.verticesFloatingPoint[dataInd].z == -2){
 	       cloud.points[count].z = 0;
 	       cloud_xyz.points[count].z = 0;
     	 }else{
-	 	     cloud.points[count].z = data.verticesFloatingPoint[count].z;
-	 	     cloud_xyz.points[count].z = data.verticesFloatingPoint[count].z;
-	 	     if(max_depth < data.verticesFloatingPoint[count].z)
-	 	        max_depth = data.verticesFloatingPoint[count].z;
+	 	     cloud.points[count].z = data.verticesFloatingPoint[dataInd].z;
+	 	     cloud_xyz.points[count].z = data.verticesFloatingPoint[dataInd].z;
+	 	     if(max_depth < data.verticesFloatingPoint[dataInd].z)
+	 	        max_depth = data.verticesFloatingPoint[dataInd].z;
        }
        //get mapping between depth map and color map
        p3DPoints[0] = data.vertices[count];
@@ -225,6 +228,9 @@ void Sensor::onNewDepthSample(DepthNode node, DepthNode::NewSampleReceivedData d
         depth_img.at<float>(i,j) = (float)((data.verticesFloatingPoint[i*w+j].z/max_depth));//*255.0);
     }
   }
+  
+  //rotate point cloud
+  pcl::transformPointCloud(cloud,cloud,transform);
    
   //set_up camera info from IntrinsicParameters
   camera_info.header.frame_id = "/map";

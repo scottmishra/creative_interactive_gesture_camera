@@ -6,7 +6,7 @@ using namespace message_filters;
 const int LOOP_DETECTION_THRESHOLD = 40;
 const int KEYFRAME_INLIERS_THRESHOLD = 100;
 
-poseEstimate::poseEstimate(ros::NodeHandle& nh) : it_(nh_), sync(MySyncPolicy(10), image_sub, pc_sub)//, ci_sub
+poseEstimate::poseEstimate(ros::NodeHandle& nh) : it_(nh_), sync(MySyncPolicy(10), image_sub, pc_sub),sync2(MySyncPolicy(4), image_sub, pc_sub)//, ci_sub
 {
   //setup ros node handle
   nh_ = nh;
@@ -64,7 +64,8 @@ void poseEstimate::setup()
   camera_info = nh_.subscribe<sensor_msgs::CameraInfo>("camera_info",1,&poseEstimate::cameraInfoCallback, this);
    
   //message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(100), image_sub, pc_sub, ci_sub);//
-  sync.registerCallback(boost::bind(&poseEstimate::pointCloudCallback3, this,  _1, _2));//, _3
+  //sync.registerCallback(boost::bind(&poseEstimate::pointCloudCallback2, this,  _1, _2));//, _3
+  sync2.registerCallback(boost::bind(&poseEstimate::pairwiseCallback, this, _1,_2));
 }
 
 void poseEstimate::cameraInfoCallback(const sensor_msgs::CameraInfoConstPtr& cam_info)
@@ -89,11 +90,13 @@ void poseEstimate::pointCloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::C
 {  
 }
 
-void poseEstimate::pointCloudCallback2(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& cloud)
+void poseEstimate::pairwiseCallback(const sensor_msgs::ImageConstPtr& image, 
+                                    const sensor_msgs::PointCloud2ConstPtr& cloudMsg)
 {
+
 }
 
-void poseEstimate::pointCloudCallback3(const sensor_msgs::ImageConstPtr& image, 
+void poseEstimate::pointCloudCallback2(const sensor_msgs::ImageConstPtr& image, 
                                        const sensor_msgs::PointCloud2ConstPtr& cloudMsg//,
                                        //const creative_interactive_gesture_camera::Mapping2D::ConstPtr& mapping
                                        )//
@@ -168,6 +171,7 @@ void poseEstimate::pointCloudCallback3(const sensor_msgs::ImageConstPtr& image,
     //Using Fundemental Matrix to back out rotatino matrix
     while(K_.empty())
     {
+      //used to make sure that K_ matrix is populated from ros mssage
       sleep(10);
     }
     

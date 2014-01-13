@@ -19,6 +19,9 @@
 #include <pcl/point_types.h>
 #include <pcl/range_image/range_image.h>
 #include <pcl/filters/statistical_outlier_removal.h>
+#include <pcl/common/transforms.h>
+
+#include <Eigen/Core>
 
 #include <message_filters/subscriber.h>
 #include <message_filters/time_synchronizer.h>
@@ -81,6 +84,8 @@ private:
   
   pcl::PointCloud<pcl::PointXYZRGB> cloud; //PointCloud containers
   pcl::PointCloud<pcl::PointXYZ> cloud_xyz;
+  
+  Eigen::Matrix4f transform; //used to rotate cloud into proper reference frame
   
   creative_interactive_gesture_camera::Point2D mappingPoint; //hold x,y point data as float32
   creative_interactive_gesture_camera::Mapping2D mapping; //3d-2d mapping

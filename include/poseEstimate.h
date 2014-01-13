@@ -97,10 +97,11 @@ class poseEstimate
   void pointCloudCallback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& cloud);
   
   //testing different callback functions
-  void pointCloudCallback2(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& cloud);
+  void pairwiseCallback(const sensor_msgs::ImageConstPtr& image, 
+                        const sensor_msgs::PointCloud2ConstPtr& cloudMsg);
   
   //pulling in pointcloud, full image, and mapping informaiton
-  void pointCloudCallback3(const sensor_msgs::ImageConstPtr& image, 
+  void pointCloudCallback2(const sensor_msgs::ImageConstPtr& image, 
                            const sensor_msgs::PointCloud2ConstPtr& cloudMsg//,
                            //const creative_interactive_gesture_camera::Mapping2D::ConstPtr& mapping
                            );
@@ -185,6 +186,7 @@ class poseEstimate
   typedef message_filters::sync_policies::ApproximateTime< sensor_msgs::Image, sensor_msgs::PointCloud2> MySyncPolicy;// , creative_interactive_gesture_camera::Mapping2D
   
   message_filters::Synchronizer<MySyncPolicy> sync;
+  message_filters::Synchronizer<MySyncPolicy> sync2;
   
   // Point clouds XYZRGB objects
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr globalMap_;
