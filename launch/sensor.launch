@@ -1,5 +1,15 @@
 <launch>
-  <node pkg="tf" type="static_transform_publisher" name="base_link_broadcaster" args="0 0 0 0 0 0 map link1 100" />
+  <arg name="pi/2" value="1.5707963267948966" />
+  <arg name="optical_rotate" value="0 0 0 -$(arg pi/2) 0 -$(arg pi/2)" />
+  
+  <node pkg="tf" type="static_transform_publisher" name="camera_rgb_frame_tf"
+        args="0 -0.045 0 0 0 0  /camera_link /camera_rgb_frame 40" />        
+
+  <node pkg="tf" type="static_transform_publisher" name="camera_rgb_optical_frame_tf"
+        args="$(arg optical_rotate) /camera_rgb_frame /camera_rgb_optical_frame 40" />  
+        
+  <node pkg="tf" type="static_transform_publisher" name="base_link_broadcaster" 
+        args="0 0 0 0 0 0 /map /camera_link 40" />
   
   <node pkg="creative_interactive_gesture_camera" type="main" name="depth_cam" respawn="false"  required="true">
     <remap from="/points2" to="/depth_registered/pointsRGB" /> <!-- output -->
@@ -29,19 +39,19 @@
   </node>
   
   <node pkg="creative_interactive_gesture_camera" type="camera_sync" name="camera_sync" respawn="false"  required="true">
-    <remap from="/rgb_image" to="/rgb/image_raw" /> <!-- input -->
-    <remap from="/camera_info" to="/rgb/camera_info" /> <!-- input -->
+    <remap from="/rgb_image" to="/camera/rgb/image_raw" /> <!-- input -->
+    <remap from="/camera_info" to="/camera/rgb/camera_info" /> <!-- input -->
     <remap from="/point_cloud" to="/depth_registered/pointsRGB" /> <!-- input -->
     <remap from="/points2_image" to="/depth_registered/points_imageRGB" /> <!-- output -->
   </node>
   
   <!-- Run compareDepthImage for depth image debugging -->
   <node pkg="creative_interactive_gesture_camera" type="compareDepthImage" name="compareDepthImage" respawn="false"  required="true">
-    <remap from="depth_image" to="/depth/points/image_raw" /> <!-- input -->
+    <remap from="depth_image" to="/camera/depth/points/image_raw" /> <!-- input -->
   </node>
   
   <node pkg="nodelet" type="nodelet" name="rgb_proc_nodelet" 
-        args="standalone image_proc/crop_decimate camera:=rgb camera_out:=rgb_downsampled">
+        args="standalone image_proc/crop_decimate camera:=camera camera_out:=rgb_downsampled">
   </node>
   
   <node pkg="dynamic_reconfigure" type="dynparam" name="reconfig_x" 
@@ -64,13 +74,13 @@
         args="set /mono_proc_nodelet decimation_y 3">
   </node>
   
-  <node pkg="image_view" type="image_view" name="image_view2" args="image:=/rgb_downsampled/image_raw" respawn="false"  required="true">
+ <!-- <node pkg="image_view" type="image_view" name="image_view2" args="image:=/rgb_downsampled/image_raw" respawn="false"  required="true">
   </node> 
   
   <node pkg="image_view" type="image_view" name="image_viewmono2" args="image:=/mono_downsampled/image_raw" respawn="false"  required="true">
   </node> 
   
   <node pkg="image_view" type="image_view" name="image_view3" args="image:=/depth_registered/points_imageRGB" respawn="false"  required="true">
-  </node> 
+  </node> -->
   
 </launch>
